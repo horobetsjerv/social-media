@@ -8,14 +8,6 @@ import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class UserService {
-  accountSid = 'AC2b8e5a4ba1856da33d77b3b063b91ffa';
-  authToken = 'd95734315cc843d71810659ed9539b3e';
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  client = require('twilio')(this.accountSid, this.authToken);
-  SMSru = require('sms_ru');
-  api_id = 'EEAF1488-6265-83EF-4251-06B3B997D866';
-  sms = new this.SMSru(this.api_id);
-
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
