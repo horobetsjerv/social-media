@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
@@ -6,6 +10,8 @@ import * as nodemailer from 'nodemailer';
 import { Code } from './code.entity';
 import * as jwt from 'jsonwebtoken';
 import { CreateUserDto } from './dto/create-user.dto';
+import { JwtCheckDto } from './dto/jwt-check.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
@@ -16,6 +22,7 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(Code)
     private codeRepository: Repository<Code>,
+    private readonly jwtService: JwtService,
   ) {}
   async sendCode(data: User) {
     function generateCode(length) {
@@ -98,7 +105,7 @@ export class UserService {
 
       if (code && code.code === data.code) {
         const token = jwt.sign({ user }, 'your_secret_key', {
-          expiresIn: '1h',
+          expiresIn: '30d',
         });
         console.log({ token, isNewUser: this.isNewUser });
         const isNewUser = this.isNewUser;
@@ -127,6 +134,25 @@ export class UserService {
       }
     } else {
       throw new NotFoundException('Пользователь не найден');
+    }
+  }
+  async cheackJWT(token: string) {
+    try {
+      let isValid: boolean;
+      const decodedToken = this.jwtService.verify(token);
+      if (!decodedToken || !decodedToken.exp) {
+        throw new UnauthorizedException('Неправильный токен');
+      }
+      const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+      if (decodedToken.exp < currentTimeInSeconds) {
+        isValid = false;
+        throw new UnauthorizedException('Дата токена истекла');
+      } else {
+        isValid = true;
+      }
+      return { isValid: isValid };
+    } catch (error) {
+      throw new Error('Invalid token');
     }
   }
 }

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { JwtCheckDto } from './dto/jwt-check.dto';
 
 @Controller()
 export class UserController {
@@ -44,6 +45,20 @@ export class UserController {
     try {
       const newUser = await this.userService.setupUser(data);
       response.status(201).json(newUser);
+    } catch (error) {
+      response.status(400).json({ message: error.message });
+    }
+  }
+  @Post('me')
+  async checkJWT(
+    @Res() response: Response,
+    @Req() request: Request,
+  ): Promise<void> {
+    const token: string = request.body.token;
+
+    try {
+      const isValid = await this.userService.cheackJWT(token);
+      response.status(201).json(isValid);
     } catch (error) {
       response.status(400).json({ message: error.message });
     }

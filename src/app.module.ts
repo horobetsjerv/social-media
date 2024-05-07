@@ -7,6 +7,7 @@ import { User } from './user.entity';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { Code } from './code.entity';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -26,6 +27,10 @@ import { Code } from './code.entity';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([User, Code]),
+    JwtModule.register({
+      secret: 'your_secret_key', // Замените на ваш секретный ключ
+      signOptions: { expiresIn: '1h' }, // Опционально, установите время действия токена
+    }),
   ],
   controllers: [AppController, UserController],
   providers: [AppService, UserService],
