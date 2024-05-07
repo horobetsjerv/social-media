@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
 import * as nodemailer from 'nodemailer';
 import { Code } from './code.entity';
 import * as jwt from 'jsonwebtoken';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
+  public isNewUser: boolean = false;
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -16,7 +19,7 @@ export class UserService {
   ) {}
   async sendCode(data: User) {
     function generateCode(length) {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const characters = '0123456789';
       let code = '';
       for (let i = 0; i < length; i++) {
         const randomIndex = Math.floor(Math.random() * characters.length);
@@ -26,29 +29,28 @@ export class UserService {
     }
 
     try {
-      const code = generateCode(5);
+      const code = generateCode(6);
 
       let user: User = await this.userRepository.findOne({
         where: { email: data.email },
       });
-      let isNewUser = false;
 
       if (!user) {
         user = this.userRepository.create(data);
-        console.log('user', user);
         await this.userRepository.save(user);
-        console.log('savework');
-        isNewUser = true;
+        this.isNewUser = true;
+      }
+
+      if (!this.isNewUser) {
+        // Если пользователь не новый, удаляем старый код (если он есть) и сохраняем новый
+        await this.codeRepository.delete({ user: user });
       }
 
       const verificationCode = this.codeRepository.create({
         code: code,
         user: user,
       });
-      if (!isNewUser) {
-        // Если пользователь не новый, удаляем старый код (если он есть) и сохраняем новый
-        await this.codeRepository.delete({ user: user });
-      }
+
       await this.codeRepository.save(verificationCode);
 
       const transporter = nodemailer.createTransport({
@@ -75,6 +77,7 @@ export class UserService {
           console.log('Email sent: ' + info.response);
         }
       });
+      return { isUserNew: this.isNewUser };
     } catch (error) {
       console.error('Ошибка при создании пользователя:', error);
       throw new Error('Ошибка при создании пользователя');
@@ -82,13 +85,14 @@ export class UserService {
   }
   async validateCode(data: any) {
     try {
-      console.log('data', data);
+      console.log('validateCodeUser', this.isNewUser);
       let user: User = await this.userRepository.findOne({
         where: { email: data.email },
       });
       let code: Code = await this.codeRepository.findOne({
-        where: { userId: data.user },
+        where: { userId: user.id },
       });
+      console.log(data);
       console.log('user code ->', code, 'data code =>', data.code);
       console.log(user.id);
 
@@ -96,13 +100,33 @@ export class UserService {
         const token = jwt.sign({ user }, 'your_secret_key', {
           expiresIn: '1h',
         });
-        return token; // Возвращаем токен при успешной аутентификации
+        console.log({ token, isNewUser: this.isNewUser });
+        const isNewUser = this.isNewUser;
+        this.isNewUser = false;
+
+        return { token, isNewUser };
       } else {
         return false; // В противном случае возвращаем false
       }
     } catch (err) {
       console.log(err);
       return false; // В случае ошибки также возвращаем false
+    }
+  }
+  async setupUser(data: CreateUserDto) {
+    const { email, ...updatedFields } = data;
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (user) {
+      // Если пользователь найден, обновляем его поля
+      if (data.username && data.name) {
+        await this.userRepository.update({ email }, updatedFields);
+        return await this.userRepository.findOne({ where: { email } });
+      } else {
+        throw new NotFoundException('Вы не передали username или name');
+      }
+    } else {
+      throw new NotFoundException('Пользователь не найден');
     }
   }
 }

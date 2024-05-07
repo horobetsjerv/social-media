@@ -1,6 +1,7 @@
-import { Controller, Post, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { UserService } from './user.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Controller()
 export class UserController {
@@ -14,7 +15,6 @@ export class UserController {
     const data: any = request.body;
     console.log(data);
     const newUser = await this.userService.sendCode(data);
-
     response.status(201).json(newUser);
   }
   @Post('/code')
@@ -28,9 +28,24 @@ export class UserController {
     const isValid = await this.userService.validateCode(data);
 
     if (isValid) {
-      response.status(200).json({ isValid }); // Возвращаем токен в случае успеха
+      response.status(200).json({ ...isValid }); // Возвращаем токен в случае успеха
     } else {
-      response.status(400).json({ message: 'failed' });
+      response.status(400).json({ message: 'failed', isValid });
+    }
+  }
+  @Post('/setup')
+  async setupUser(
+    @Res() response: Response,
+    @Req() request: Request,
+  ): Promise<void> {
+    const data: CreateUserDto = request.body;
+    console.log(data);
+
+    try {
+      const newUser = await this.userService.setupUser(data);
+      response.status(201).json(newUser);
+    } catch (error) {
+      response.status(400).json({ message: error.message });
     }
   }
 }
