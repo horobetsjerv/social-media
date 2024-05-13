@@ -140,6 +140,14 @@ export class UserService {
     try {
       let isValid: boolean;
       const decodedToken = this.jwtService.verify(token);
+      const user = decodedToken.user;
+      const { email, username, name, id } = user;
+      const isUserExist = await this.userRepository.findOne({
+        where: { email, id },
+      });
+      if (!isUserExist) {
+        throw new UnauthorizedException('Такого пользователя не существует');
+      }
       if (!decodedToken || !decodedToken.exp) {
         throw new UnauthorizedException('Неправильный токен');
       }
@@ -150,9 +158,9 @@ export class UserService {
       } else {
         isValid = true;
       }
-      return { isValid: isValid };
+      return { isValid: isValid, email, username, name };
     } catch (error) {
-      throw new Error('Invalid token');
+      throw new Error(error);
     }
   }
 }

@@ -57,8 +57,8 @@ export class UserController {
     const token: string = request.body.token;
 
     try {
-      const isValid = await this.userService.cheackJWT(token);
-      response.status(201).json(isValid);
+      const data = await this.userService.cheackJWT(token);
+      response.status(201).json(data);
     } catch (error) {
       response.status(400).json({ message: error.message });
     }
