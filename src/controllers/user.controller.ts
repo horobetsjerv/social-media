@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { JwtCheckDto } from './dto/jwt-check.dto';
+import { UserService } from '../services/user.service';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { JwtCheckDto } from '../dto/jwt-check.dto';
 
 @Controller()
 export class UserController {

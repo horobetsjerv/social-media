@@ -11,8 +11,11 @@ import {
   UpdateDateColumn, // Добавляем импорт BeforeInsert
   OneToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Code } from './code.entity';
+import { Chat } from './chat.entity';
 
 @Entity()
 export class User {
@@ -40,4 +43,8 @@ export class User {
   @OneToOne(() => Code, (code) => code.user)
   @JoinColumn({ name: 'userId' }) // Указываем имя столбца, на который ссылается внешний ключ
   code: Code;
+
+  @ManyToMany(() => Chat, (chat) => chat.users)
+  @JoinTable()
+  chats: Chat[];
 }

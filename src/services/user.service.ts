@@ -4,13 +4,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './user.entity';
+import { User } from '../models/user.entity';
 import { Repository } from 'typeorm';
 import * as nodemailer from 'nodemailer';
-import { Code } from './code.entity';
+import { Code } from '../models/code.entity';
 import * as jwt from 'jsonwebtoken';
-import { CreateUserDto } from './dto/create-user.dto';
-import { JwtCheckDto } from './dto/jwt-check.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { JwtCheckDto } from '../dto/jwt-check.dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -93,8 +93,12 @@ export class UserService {
   async validateCode(data: any) {
     try {
       console.log('validateCodeUser', this.isNewUser);
+      //let user: User = await this.userRepository.findOne({
+      //where: { email: data.email },
+      //});
       let user: User = await this.userRepository.findOne({
         where: { email: data.email },
+        relations: ['chats'],
       });
       let code: Code = await this.codeRepository.findOne({
         where: { userId: user.id },
@@ -140,12 +144,12 @@ export class UserService {
     try {
       let isValid: boolean;
       const decodedToken = this.jwtService.verify(token);
-      const user = decodedToken.user;
-      const { email, username, name, id } = user;
-      const isUserExist = await this.userRepository.findOne({
-        where: { email, id },
+      const decodedUser = decodedToken.user;
+      let user: User = await this.userRepository.findOne({
+        where: { email: decodedUser.email },
+        relations: ['chats'],
       });
-      if (!isUserExist) {
+     if (!user) {
         throw new UnauthorizedException('Такого пользователя не существует');
       }
       if (!decodedToken || !decodedToken.exp) {
@@ -158,7 +162,7 @@ export class UserService {
       } else {
         isValid = true;
       }
-      return { isValid: isValid, email, username, name };
+      return { isValid: isValid, user };
     } catch (error) {
       throw new Error(error);
     }

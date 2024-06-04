@@ -3,11 +3,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './user.entity';
-import { UserController } from './user.controller';
-import { UserService } from './user.service';
-import { Code } from './code.entity';
+import { User } from './models/user.entity';
+import { UserController } from './controllers/user.controller';
+import { UserService } from './services/user.service';
+import { Code } from './models/code.entity';
 import { JwtModule } from '@nestjs/jwt';
+import { WebsocketsModule } from './websockets/websockets.module';
+import { ChatService } from './services/chat.service';
+import { ChatController } from './controllers/chat.controller';
+import { Chat } from './models/chat.entity';
+import { Message } from './models/message.entity';
 
 @Module({
   imports: [
@@ -22,17 +27,18 @@ import { JwtModule } from '@nestjs/jwt';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         synchronize: true,
-        entities: [User, Code],
+        entities: [User, Code, Chat, Message],
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User, Code]),
+    TypeOrmModule.forFeature([User, Code, Chat,Message]),
     JwtModule.register({
       secret: 'your_secret_key', // Замените на ваш секретный ключ
       signOptions: { expiresIn: '1h' }, // Опционально, установите время действия токена
     }),
+    WebsocketsModule,
   ],
-  controllers: [AppController, UserController],
-  providers: [AppService, UserService],
+  controllers: [AppController, UserController, ChatController],
+  providers: [AppService, UserService, ChatService],
 })
 export class AppModule {}
